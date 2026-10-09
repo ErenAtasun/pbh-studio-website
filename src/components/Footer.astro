@@ -1,0 +1,129 @@
+---
+import LogoMark from './LogoMark.astro';
+import { studio, activeSocials } from '../data/studio';
+import type { Lang } from '../i18n/ui';
+import { localizePath, useTranslations } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container grid">
+    <div class="about">
+      <a class="brand" href={localizePath('/', lang)}>
+        <LogoMark size={28} />
+        <span lang="en">{studio.name}</span>
+      </a>
+      <p>{studio.fullName} — {t('footer.tagline')}</p>
+      <a class="mail" href={`mailto:${studio.email}`}>{studio.email}</a>
+    </div>
+
+    <nav aria-label="Footer">
+      <ul>
+        <li><a href={localizePath('/games', lang)}>{t('nav.games')}</a></li>
+        <li><a href={localizePath('/about', lang)}>{t('nav.about')}</a></li>
+        <li><a href={localizePath('/press', lang)}>{t('nav.press')}</a></li>
+        <li><a href={localizePath('/contact', lang)}>{t('nav.contact')}</a></li>
+      </ul>
+    </nav>
+
+    {
+      activeSocials.length > 0 && (
+        <ul class="socials">
+          {activeSocials.map((s) => (
+            <li>
+              <a href={s.url} target="_blank" rel="noopener noreferrer">
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+  <div class="container legal">
+    <p>© {year} {studio.fullName}. {t('footer.rights')}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 56px;
+    background: var(--bg-elev);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 40px;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-logo);
+    font-stretch: 125%;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .about p {
+    margin-top: 14px;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  .mail {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--accent-soft);
+    font-size: 0.95rem;
+    overflow-wrap: anywhere;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    align-content: start;
+  }
+
+  ul a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+
+  ul a:hover {
+    color: var(--text);
+  }
+
+  .legal {
+    margin-top: 48px;
+    padding-block: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 720px) {
+    .grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .about {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

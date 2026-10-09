@@ -1,0 +1,254 @@
+---
+import LogoMark from './LogoMark.astro';
+import { studio } from '../data/studio';
+import type { Lang } from '../i18n/ui';
+import { localizePath, stripLang, useTranslations } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const current = stripLang(Astro.url.pathname);
+
+const links = [
+  { href: '/games', label: t('nav.games') },
+  { href: '/about', label: t('nav.about') },
+  { href: '/press', label: t('nav.press') },
+  { href: '/contact', label: t('nav.contact') },
+];
+
+const isActive = (href: string) => current === href || current.startsWith(`${href}/`);
+const otherLang: Lang = lang === 'en' ? 'tr' : 'en';
+---
+
+<header class="site-header" data-header>
+  <div class="container bar">
+    <a class="brand" href={localizePath('/', lang)} aria-label={studio.name}>
+      <LogoMark size={30} />
+      <span lang="en">{studio.name}</span>
+    </a>
+
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" data-menu-toggle>
+      <span class="visually-hidden">{t('nav.menu')}</span>
+      <span class="burger" aria-hidden="true"></span>
+    </button>
+
+    <nav id="site-nav" class="nav" data-nav>
+      <ul>
+        {
+          links.map((link) => (
+            <li>
+              <a href={localizePath(link.href, lang)} aria-current={isActive(link.href) ? 'page' : undefined}>
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="lang" href={localizePath(current, otherLang)} hreflang={otherLang} lang={otherLang}>
+        {otherLang.toUpperCase()}
+      </a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 50;
+    height: var(--header-h);
+    transition:
+      background 0.3s,
+      border-color 0.3s;
+    border-bottom: 1px solid transparent;
+  }
+
+  .site-header[data-scrolled],
+  .site-header[data-open] {
+    background: rgba(5, 6, 10, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom-color: var(--border);
+  }
+
+  .bar {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-logo);
+    font-stretch: 125%;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .nav ul {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav a {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    transition: color 0.2s;
+  }
+
+  .nav a:hover,
+  .nav a[aria-current='page'] {
+    color: var(--text);
+  }
+
+  .nav a[aria-current='page'] {
+    text-decoration: underline;
+    text-decoration-color: var(--accent);
+    text-underline-offset: 8px;
+    text-decoration-thickness: 2px;
+  }
+
+  .lang {
+    font-family: var(--font-display);
+    font-size: 0.8rem !important;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    padding: 6px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+
+  @media (max-width: 820px) {
+    .menu-toggle {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin-right: -10px;
+      background: none;
+      border: 0;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .burger,
+    .burger::before,
+    .burger::after {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 2px;
+      transition: transform 0.25s, opacity 0.25s;
+    }
+
+    .burger {
+      position: relative;
+    }
+
+    .burger::before,
+    .burger::after {
+      content: '';
+      position: absolute;
+      left: 0;
+    }
+
+    .burger::before {
+      top: -7px;
+    }
+
+    .burger::after {
+      top: 7px;
+    }
+
+    [data-open] .burger {
+      background: transparent;
+    }
+
+    [data-open] .burger::before {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    [data-open] .burger::after {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .nav {
+      position: fixed;
+      inset: var(--header-h) 0 auto;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      padding: 8px var(--gutter) 24px;
+      background: rgba(5, 6, 10, 0.96);
+      border-bottom: 1px solid var(--border);
+      display: none;
+    }
+
+    [data-open] .nav {
+      display: flex;
+    }
+
+    .nav ul {
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .nav ul a {
+      display: block;
+      padding: 14px 0;
+      font-size: 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav a[aria-current='page'] {
+      text-decoration: none;
+      color: var(--accent);
+    }
+
+    .lang {
+      align-self: flex-start;
+      margin-top: 20px;
+    }
+  }
+</style>
+
+<script>
+  const header = document.querySelector<HTMLElement>('[data-header]');
+  const toggle = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+
+  if (header) {
+    const onScroll = () => header.toggleAttribute('data-scrolled', window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  }
+
+  toggle?.addEventListener('click', () => {
+    const open = toggle.getAttribute('aria-expanded') !== 'true';
+    toggle.setAttribute('aria-expanded', String(open));
+    header?.toggleAttribute('data-open', open);
+  });
+</script>

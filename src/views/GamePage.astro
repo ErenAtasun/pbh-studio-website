@@ -1,0 +1,286 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Trailer from '../components/Trailer.astro';
+import Gallery from '../components/Gallery.astro';
+import type { Game } from '../data/games';
+import type { Lang } from '../i18n/ui';
+import { localizePath, useTranslations } from '../i18n/utils';
+
+interface Props {
+  game: Game;
+  lang: Lang;
+}
+const { game, lang } = Astro.props;
+const t = useTranslations(lang);
+const { Content } = await render(game);
+const d = game.data;
+
+const facts = [
+  { label: t('game.status'), value: t(`status.${d.status}` as const) },
+  { label: t('game.release'), value: d.releaseDate },
+  { label: t('game.genre'), value: d.genres.join(', ') },
+  { label: t('game.platforms'), value: d.platforms.join(', ') },
+].filter((f) => f.value);
+---
+
+<BaseLayout lang={lang} title={d.title} description={d.tagline} image={d.cover}>
+  <section class="game-hero">
+    <div class="backdrop" aria-hidden="true">
+      <img src={d.cover} alt="" />
+    </div>
+    <div class="container hero-inner">
+      <a class="back" href={localizePath('/games', lang)}>← {t('game.back')}</a>
+      <span class="badge" data-status={d.status}>{t(`status.${d.status}` as const)}</span>
+      <h1>{d.title}</h1>
+      <p class="tagline">{d.tagline}</p>
+      {
+        d.stores.length > 0 && (
+          <div class="actions">
+            {d.stores.map((store, i) => (
+              <a
+                class:list={['btn', { 'btn-primary': i === 0 }]}
+                href={store.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {store.name}
+              </a>
+            ))}
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <div class="container content">
+    {
+      d.trailer && (
+        <section class="block">
+          <h2 class="visually-hidden">{t('game.trailer')}</h2>
+          <Trailer id={d.trailer} title={d.title} label={t('game.watch')} />
+        </section>
+      )
+    }
+
+    <section class="block split">
+      <div>
+        <h2 class="block-title">{t('game.about')}</h2>
+        <div class="prose">
+          <Content />
+        </div>
+
+        {
+          d.features.length > 0 && (
+            <>
+              <h3 class="sub-title">{t('game.features')}</h3>
+              <ul class="features">
+                {d.features.map((f) => (
+                  <li>{f}</li>
+                ))}
+              </ul>
+            </>
+          )
+        }
+      </div>
+
+      <aside>
+        <dl class="facts card">
+          {
+            facts.map((f) => (
+              <div>
+                <dt>{f.label}</dt>
+                <dd>{f.value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+        {
+          d.steamAppId && (
+            <iframe
+              class="steam"
+              src={`https://store.steampowered.com/widget/${d.steamAppId}/`}
+              title={`${d.title} — Steam`}
+              loading="lazy"
+              width="646"
+              height="190"
+            />
+          )
+        }
+      </aside>
+    </section>
+
+    {
+      d.screenshots.length > 0 && (
+        <section class="block">
+          <h2 class="block-title">{t('game.screenshots')}</h2>
+          <Gallery images={d.screenshots} title={d.title} closeLabel={t('game.close')} />
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .game-hero {
+    position: relative;
+    min-height: min(78svh, 760px);
+    display: flex;
+    align-items: flex-end;
+    padding: calc(var(--header-h) + 64px) 0 56px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+  }
+
+  .backdrop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.55;
+  }
+
+  .backdrop::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to top, var(--bg) 2%, rgba(5, 6, 10, 0.55) 45%, rgba(5, 6, 10, 0.3)),
+      linear-gradient(to right, rgba(5, 6, 10, 0.7), transparent 70%);
+  }
+
+  .hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .back {
+    margin-bottom: 28px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .back:hover {
+    color: var(--text);
+  }
+
+  h1 {
+    margin-top: 14px;
+    font-size: clamp(2.75rem, 8vw, 5.5rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+  }
+
+  .tagline {
+    margin-top: 16px;
+    max-width: 58ch;
+    font-size: clamp(1.05rem, 1.8vw, 1.25rem);
+    color: var(--text-muted);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 30px;
+  }
+
+  .content {
+    padding-bottom: clamp(64px, 10vw, 120px);
+  }
+
+  .block {
+    margin-top: clamp(48px, 7vw, 88px);
+  }
+
+  .block-title {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin-bottom: 24px;
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
+  }
+
+  .sub-title {
+    margin: 40px 0 18px;
+    font-size: 1.25rem;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 12px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .features li {
+    padding: 16px 18px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  aside {
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
+    display: grid;
+    gap: 16px;
+  }
+
+  .facts {
+    margin: 0;
+    padding: 8px 22px;
+  }
+
+  .facts div {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .facts div:last-child {
+    border-bottom: 0;
+  }
+
+  dt {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  dd {
+    margin: 4px 0 0;
+  }
+
+  .steam {
+    width: 100%;
+    height: 190px;
+    border: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (max-width: 900px) {
+    .split {
+      grid-template-columns: 1fr;
+    }
+    aside {
+      position: static;
+    }
+  }
+</style>

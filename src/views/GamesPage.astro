@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GameCard from '../components/GameCard.astro';
+import { getGames } from '../data/games';
+import type { Lang } from '../i18n/ui';
+import { useTranslations } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const games = await getGames(lang);
+---
+
+<BaseLayout lang={lang} title={t('games.title')} description={t('games.intro')}>
+  <section class="container page-hero">
+    <span class="eyebrow" lang="en">PBH Studio</span>
+    <h1>{t('games.title')}</h1>
+    <p>{t('games.intro')}</p>
+  </section>
+
+  <section class="container section games">
+    {
+      games.length > 0 ? (
+        <div class="grid">
+          {games.map((game) => (
+            <GameCard game={game} lang={lang} />
+          ))}
+        </div>
+      ) : (
+        <p class="lead">{t('games.empty')}</p>
+      )
+    }
+  </section>
+</BaseLayout>
+
+<style>
+  .games {
+    padding-top: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+    gap: 24px;
+  }
+</style>

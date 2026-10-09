@@ -1,0 +1,124 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { studio, activeSocials } from '../data/studio';
+import type { Lang } from '../i18n/ui';
+import { localizePath, useTranslations } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const channels = [
+  { title: t('contact.general'), email: studio.email },
+  { title: t('contact.press'), email: studio.pressEmail, link: { href: localizePath('/press', lang), label: t('nav.press') } },
+];
+---
+
+<BaseLayout lang={lang} title={t('contact.title')} description={t('contact.intro')}>
+  <section class="container page-hero">
+    <span class="eyebrow" lang="en">{studio.name}</span>
+    <h1>{t('contact.title')}</h1>
+    <p>{t('contact.intro')}</p>
+  </section>
+
+  <section class="container channels">
+    {
+      channels.map((c) => (
+        <div class="card channel">
+          <h2>{c.title}</h2>
+          <a class="email" href={`mailto:${c.email}`}>
+            {c.email}
+          </a>
+          <div class="row">
+            <a class="btn btn-primary" href={`mailto:${c.email}`}>
+              {t('contact.cta')}
+            </a>
+            {c.link && (
+              <a class="btn" href={c.link.href}>
+                {c.link.label}
+              </a>
+            )}
+          </div>
+        </div>
+      ))
+    }
+  </section>
+
+  {
+    activeSocials.length > 0 && (
+      <section class="container section follow">
+        <h2 class="section-title">{t('contact.follow')}</h2>
+        <ul>
+          {activeSocials.map((s) => (
+            <li>
+              <a class="btn" href={s.url} target="_blank" rel="noopener noreferrer">
+                {s.label} ↗
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <div class="spacer"></div>
+</BaseLayout>
+
+<style>
+  .channels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    gap: 20px;
+  }
+
+  .channel {
+    padding: clamp(24px, 4vw, 40px);
+    background:
+      radial-gradient(100% 120% at 100% 0%, rgba(255, 138, 61, 0.1), transparent 60%),
+      var(--surface);
+  }
+
+  .channel h2 {
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .email {
+    display: block;
+    margin-top: 14px;
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+    font-weight: 500;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+
+  .email:hover {
+    color: var(--accent-soft);
+  }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .follow ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 28px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .spacer {
+    height: clamp(64px, 10vw, 120px);
+  }
+</style>

@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import * as aboutEn from '../copy/about.en.md';
+import * as aboutTr from '../copy/about.tr.md';
+import { studio } from '../data/studio';
+import { getGames } from '../data/games';
+import type { Lang } from '../i18n/ui';
+import { pick, useTranslations, withBase } from '../i18n/utils';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const about = lang === 'tr' ? aboutTr : aboutEn;
+const games = await getGames(lang);
+
+const facts = [
+  { label: t('press.basedIn'), value: pick(studio.location, lang) },
+  { label: t('press.founded'), value: studio.founded },
+  { label: t('press.games'), value: String(games.length) },
+].filter((f) => f.value);
+
+const initials = (name: string) =>
+  name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+---
+
+<BaseLayout lang={lang} title={t('about.title')} description={about.frontmatter.summary}>
+  <section class="container page-hero">
+    <span class="eyebrow" lang="en">{studio.fullName}</span>
+    <h1>{t('about.title')}</h1>
+  </section>
+
+  <section class="container split">
+    <div class="prose">
+      <about.Content />
+    </div>
+    <aside>
+      <h2 class="eyebrow">{t('about.facts')}</h2>
+      <dl>
+        {
+          facts.map((f) => (
+            <div>
+              <dt>{f.label}</dt>
+              <dd>{f.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </aside>
+  </section>
+
+  {
+    studio.team.length > 0 && (
+      <section class="container section">
+        <h2 class="section-title">{t('about.team')}</h2>
+        <ul class="team">
+          {studio.team.map((member) => (
+            <li class="card">
+              {member.photo ? (
+                <img src={withBase(member.photo)} alt="" width="96" height="96" loading="lazy" />
+              ) : (
+                <span class="avatar" aria-hidden="true">
+                  {initials(member.name)}
+                </span>
+              )}
+              <div>
+                <h3>{member.name}</h3>
+                <p>{pick(member.role, lang)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+</BaseLayout>
+
+<style>
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: clamp(32px, 6vw, 96px);
+    align-items: start;
+  }
+
+  dl {
+    margin: 16px 0 0;
+  }
+
+  dl div {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  dt {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  dd {
+    margin: 4px 0 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+
+  .team {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 16px;
+    margin: 32px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .team li {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px;
+  }
+
+  .team img,
+  .avatar {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .avatar {
+    display: grid;
+    place-items: center;
+    background: radial-gradient(circle at 30% 30%, var(--surface-2), #000);
+    border: 1px solid rgba(255, 138, 61, 0.5);
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--accent-soft);
+  }
+
+  .team h3 {
+    font-size: 1.1rem;
+  }
+
+  .team p {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 820px) {
+    .split {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

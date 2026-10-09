@@ -1,0 +1,17 @@
+---
+import { withBase } from '../i18n/utils';
+
+// PBH Studio logo işareti (public/brand/pbh-mark.png — logonun yalnızca daire kısmı)
+interface Props {
+  size?: number;
+}
+const { size = 32 } = Astro.props;
+---
+
+<img class="logo-mark" src={withBase('/brand/pbh-mark.png')} alt="" width={size} height={size} />
+
+<style>
+  .logo-mark {
+    flex: none;
+  }
+</style>

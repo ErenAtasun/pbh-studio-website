@@ -1,0 +1,300 @@
+---
+// Hero arka planı: kütleçekimsel mercek etkisiyle bükülen yıldızlar + accretion disk.
+// Yıldızlar nokta-mercek denklemiyle çiziliyor: θ± = (β ± √(β² + 4θE²)) / 2
+---
+
+<div class="blackhole" aria-hidden="true">
+  <canvas data-blackhole></canvas>
+</div>
+
+<style>
+  .blackhole {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+  }
+</style>
+
+<script>
+  const TAU = Math.PI * 2;
+  const TILT = 0.2; // diskin bakış açısı (0 = yandan, 1 = üstten)
+  const ROT = -0.14; // diskin ekrandaki eğimi (radyan)
+
+  interface Star {
+    bx: number;
+    by: number;
+    v: number;
+    mag: number;
+    size: number;
+    tf: number;
+    tp: number;
+  }
+
+  interface Particle {
+    r: number;
+    a: number;
+    speed: number;
+    size: number;
+    alpha: number;
+    color: string;
+  }
+
+  function setup(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let w = 0;
+    let h = 0;
+    let cx = 0;
+    let cy = 0;
+    let R = 0; // gölge (olay ufku) yarıçapı
+    let thetaE = 0; // Einstein yarıçapı
+    let time = 0;
+    let stars: Star[] = [];
+    let disk: Particle[] = [];
+    let ambient: CanvasGradient;
+    let halo: CanvasGradient;
+    let lensArc: CanvasGradient;
+    let bandGradients: { r: number; g: CanvasGradient }[] = [];
+
+    function layout() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = rect.width;
+      h = rect.height;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const wide = w > 820;
+      cx = wide ? w * 0.7 : w * 0.5;
+      cy = wide ? h * 0.48 : h * 0.3;
+      R = Math.min(w, h) * (wide ? 0.1 : 0.13);
+      thetaE = R * 2.1;
+
+      const starCount = Math.round((w * h) / 1700);
+      stars = Array.from({ length: starCount }, () => {
+        const depth = Math.random();
+        return {
+          bx: (Math.random() * 2 - 1) * w,
+          by: (Math.random() * 2 - 1) * h * 0.7,
+          v: 3 + depth * 9,
+          mag: 0.25 + depth * 0.6,
+          size: 0.6 + depth * 1.1,
+          tf: 0.5 + Math.random() * 2,
+          tp: Math.random() * TAU,
+        };
+      });
+
+      const particleCount = wide ? 900 : 500;
+      disk = Array.from({ length: particleCount }, () => {
+        const t = Math.pow(Math.random(), 1.6); // iç kısım daha yoğun
+        const r = R * (1.55 + t * 2.4);
+        const red = 255;
+        const green = Math.round(225 - t * 125);
+        const blue = Math.round(180 - t * 150);
+        return {
+          r,
+          a: Math.random() * TAU,
+          speed: 0.55 * Math.pow((R * 1.55) / r, 1.5),
+          size: 0.6 + Math.random() * 1.4,
+          alpha: 0.25 + (1 - t) * 0.55,
+          color: `rgb(${red},${green},${blue})`,
+        };
+      });
+
+      ambient = ctx!.createRadialGradient(cx, cy, R, cx, cy, R * 7);
+      ambient.addColorStop(0, 'rgba(255, 130, 60, 0.16)');
+      ambient.addColorStop(0.35, 'rgba(139, 108, 255, 0.06)');
+      ambient.addColorStop(1, 'rgba(5, 6, 10, 0)');
+
+      halo = ctx!.createRadialGradient(cx, cy, R, cx, cy, R * 1.75);
+      halo.addColorStop(0, 'rgba(255, 215, 160, 0.95)');
+      halo.addColorStop(0.07, 'rgba(255, 160, 80, 0.55)');
+      halo.addColorStop(0.35, 'rgba(255, 120, 50, 0.16)');
+      halo.addColorStop(1, 'rgba(255, 100, 40, 0)');
+
+      lensArc = ctx!.createLinearGradient(cx - R * 1.4, 0, cx + R * 1.4, 0);
+      lensArc.addColorStop(0, 'rgba(255, 215, 165, 0.5)');
+      lensArc.addColorStop(0.5, 'rgba(255, 170, 95, 0.32)');
+      lensArc.addColorStop(1, 'rgba(255, 120, 50, 0.16)');
+
+      bandGradients = [1.6, 1.85, 2.15, 2.5, 2.9, 3.4].map((k, i) => {
+        const r = R * k;
+        const g = ctx!.createLinearGradient(cx - r, 0, cx + r, 0);
+        const fade = 1 - i / 7;
+        g.addColorStop(0, `rgba(255, 200, 140, ${0.22 * fade})`);
+        g.addColorStop(1, `rgba(255, 110, 45, ${0.05 * fade})`);
+        return { r, g };
+      });
+    }
+
+    function plotStar(dx: number, dy: number, s: Star, mu: number) {
+      if (dx * dx + dy * dy < R * R * 1.08) return; // gölgenin arkasında
+      const x = cx + dx;
+      const y = cy + dy;
+      if (x < -2 || x > w + 2 || y < -2 || y > h + 2) return;
+      const twinkle = reduced ? 1 : 0.75 + 0.25 * Math.sin(time * s.tf + s.tp);
+      ctx!.globalAlpha = Math.min(1, s.mag * mu * twinkle);
+      const size = s.size * Math.min(2.4, Math.sqrt(mu));
+      ctx!.fillRect(x - size / 2, y - size / 2, size, size);
+    }
+
+    function drawStars(dt: number) {
+      ctx!.fillStyle = '#fff';
+      for (const s of stars) {
+        s.bx += s.v * dt;
+        if (s.bx > w) s.bx -= w * 2;
+
+        const b = Math.hypot(s.bx, s.by) || 0.001;
+        const ux = s.bx / b;
+        const uy = s.by / b;
+        const root = Math.sqrt(b * b + 4 * thetaE * thetaE);
+        const u = b / thetaE;
+        const base = (u * u + 2) / (2 * u * Math.sqrt(u * u + 4));
+
+        const outer = (b + root) / 2; // birincil görüntü
+        const inner = (b - root) / 2; // ikincil görüntü (karşı tarafta)
+        plotStar(ux * outer, uy * outer, s, Math.min(base + 0.5, 6));
+        plotStar(ux * inner, uy * inner, s, Math.min(base - 0.5, 6));
+      }
+      ctx!.globalAlpha = 1;
+    }
+
+    function advanceDisk(dt: number) {
+      for (const p of disk) p.a = (p.a + p.speed * dt) % TAU;
+    }
+
+    function drawDisk(back: boolean) {
+      const c = ctx!;
+      const cosR = Math.cos(ROT);
+      const sinR = Math.sin(ROT);
+
+      c.lineWidth = R * 0.2;
+      for (const band of bandGradients) {
+        c.strokeStyle = band.g;
+        c.beginPath();
+        c.ellipse(cx, cy, band.r, band.r * TILT, ROT, back ? Math.PI : 0, back ? TAU : Math.PI);
+        c.stroke();
+      }
+
+      for (const p of disk) {
+        const sin = Math.sin(p.a);
+        if (back !== sin < 0) continue;
+        const cos = Math.cos(p.a);
+        const px = p.r * cos;
+        const py = p.r * sin * TILT;
+        const doppler = 1 + 0.7 * -cos; // yaklaşan taraf daha parlak
+        c.globalAlpha = Math.min(1, p.alpha * doppler);
+        c.fillStyle = p.color;
+        c.fillRect(cx + px * cosR - py * sinR, cy + px * sinR + py * cosR, p.size, p.size);
+      }
+      c.globalAlpha = 1;
+    }
+
+    function frame(dt: number) {
+      const c = ctx!;
+      time += dt;
+      c.globalCompositeOperation = 'source-over';
+      c.clearRect(0, 0, w, h);
+
+      c.fillStyle = ambient;
+      c.fillRect(0, 0, w, h);
+
+      drawStars(dt);
+      advanceDisk(dt);
+
+      c.globalCompositeOperation = 'lighter';
+      drawDisk(true);
+
+      c.fillStyle = halo;
+      c.beginPath();
+      c.arc(cx, cy, R * 1.75, 0, TAU);
+      c.fill();
+
+      // Diskin arka yarısının bükülmüş görüntüsü: gölgenin üstünden ve altından dolanan yaylar
+      c.strokeStyle = lensArc;
+      c.lineCap = 'round';
+      c.shadowColor = 'rgba(255, 140, 60, 0.8)';
+      c.shadowBlur = R * 0.35;
+      c.lineWidth = R * 0.11;
+      c.beginPath();
+      c.ellipse(cx, cy, R * 1.24, R * 1.2, ROT, Math.PI * 1.08, TAU * 0.98);
+      c.stroke();
+      c.lineWidth = R * 0.05;
+      c.beginPath();
+      c.ellipse(cx, cy, R * 1.1, R * 1.08, ROT, Math.PI * 0.12, Math.PI * 0.88);
+      c.stroke();
+      c.shadowBlur = 0;
+      c.lineCap = 'butt';
+
+      c.globalCompositeOperation = 'source-over';
+      c.fillStyle = '#000';
+      c.beginPath();
+      c.arc(cx, cy, R, 0, TAU);
+      c.fill();
+
+      c.globalCompositeOperation = 'lighter';
+      c.strokeStyle = 'rgba(255, 228, 190, 0.9)';
+      c.lineWidth = 1.5;
+      c.shadowColor = 'rgba(255, 170, 90, 0.9)';
+      c.shadowBlur = 14;
+      c.beginPath();
+      c.arc(cx, cy, R * 1.02, 0, TAU);
+      c.stroke();
+      c.shadowBlur = 0;
+
+      drawDisk(false);
+      c.globalCompositeOperation = 'source-over';
+    }
+
+    layout();
+
+    if (reduced) {
+      frame(0);
+      new ResizeObserver(() => {
+        layout();
+        frame(0);
+      }).observe(canvas);
+      return;
+    }
+
+    let raf = 0;
+    let last = 0;
+    let visible = true;
+
+    const loop = (now: number) => {
+      const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
+      last = now;
+      frame(dt);
+      raf = requestAnimationFrame(loop);
+    };
+
+    const start = () => {
+      if (raf || !visible) return;
+      last = 0;
+      raf = requestAnimationFrame(loop);
+    };
+    const stop = () => {
+      cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    new ResizeObserver(() => layout()).observe(canvas);
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible) start();
+      else stop();
+    }).observe(canvas);
+    document.addEventListener('visibilitychange', () => (document.hidden ? stop() : start()));
+    start();
+  }
+
+  document.querySelectorAll<HTMLCanvasElement>('[data-blackhole]').forEach(setup);
+</script>
