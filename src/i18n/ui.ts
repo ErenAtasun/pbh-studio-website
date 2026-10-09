@@ -15,7 +15,7 @@ export const ui = {
 
     'hero.kicker': 'Independent game studio',
     'hero.title': 'We make games<br />with <em>gravity</em>.',
-    'hero.text': 'Small studio, dense ideas. Like a primordial black hole, we pack a lot of mass into a small space — and everything nearby gets pulled in.',
+    'hero.text': 'Small studio, dense ideas. Like a primordial black hole, we pack a lot of mass into a small space, and everything nearby gets pulled in.',
     'hero.cta.games': 'Explore our games',
     'hero.cta.about': 'About the studio',
 
@@ -91,7 +91,7 @@ export const ui = {
 
     'hero.kicker': 'Bağımsız oyun stüdyosu',
     'hero.title': 'Çekim gücü olan<br /><em>oyunlar</em> yapıyoruz.',
-    'hero.text': 'Küçük stüdyo, yoğun fikirler. İlkel bir kara delik gibi küçük bir alana çok fazla kütle sığdırıyoruz — ve yakınındaki her şey içine çekiliyor.',
+    'hero.text': 'Küçük stüdyo, yoğun fikirler. İlkel bir kara delik gibi küçük bir alana çok fazla kütle sığdırıyoruz ve yakınındaki her şey içine çekiliyor.',
     'hero.cta.games': 'Oyunlarımızı keşfet',
     'hero.cta.about': 'Stüdyoyu tanı',
 
